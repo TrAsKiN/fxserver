@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 RUN apk update && apk upgrade && apk add --no-cache libgcc libstdc++ curl jq xz wget tzdata
-ARG zone=Europe/London
+ARG zone=Etc/UTC
 RUN cp /usr/share/zoneinfo/${zone} /etc/localtime
 
 ARG artifact=".+"
