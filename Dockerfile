@@ -8,9 +8,8 @@ ARG artifact=".+"
 RUN adduser -S cfx
 WORKDIR /home/cfx
 RUN mkdir server
-RUN hash=$(curl -H \
-        "Accept: application/vnd.github.v3+json" \
-        https://api.github.com/repos/citizenfx/fivem/tags | \
+RUN hash=$(curl -H "Accept: application/vnd.github.v3+json" \
+        "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | \
         jq -r 'first(.[] | {name: .name | match("v1.0.0.('${artifact}')").captures | .[].string, hash: .commit.sha} | join("-"))') && \
     wget https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/$hash/fx.tar.xz
 RUN tar xf fx.tar.xz
