@@ -7,9 +7,11 @@
 
 ## Usage
 
+The server root is `/home/cfx/`.
+
 ### With shell command
 ```shell
-docker run -di --name fxserver -v ${pwd}:/home/cfx/server-data -p 30120:30120/tcp -p 30120:30120/udp -p 40120:40120 traskin/fxserver:latest
+docker run -di --name fxserver -p 30120:30120/tcp -p 30120:30120/udp -p 40120:40120 traskin/fxserver:latest
 ```
 
 ### With Docker Compose
@@ -22,7 +24,5 @@ services:
       - 30120:30120/tcp
       - 30120:30120/udp
       - 40120:40120
-    volumes:
-      - .:/home/cfx/server-data
     tty: true
 ```
