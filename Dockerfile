@@ -3,7 +3,7 @@ FROM alpine:latest
 ARG artifact=".+"
 
 RUN apk update
-RUN apk add --no-cache curl jq xz wget
+RUN apk add --no-cache curl jq xz wget alpine-conf
 
 RUN adduser -S cfx
 WORKDIR /home/cfx
