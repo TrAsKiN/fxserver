@@ -1,28 +1,7 @@
-# FX Server for Docker
+# FXServer for FiveM and RedM with Docker
 
-## Tags
+See the use cases on the [Docker Hub page](https://hub.docker.com/r/traskin/fxserver).
 
-- `latest`, `recommended`, `optional`
-- All build numbers listed [here](https://hub.docker.com/r/traskin/fxserver/tags)
+## License
 
-## Usage
-
-The server root is `/home/cfx/`.
-
-### With shell command
-```shell
-docker run -di --name fxserver -p 30120:30120/tcp -p 30120:30120/udp -p 40120:40120 traskin/fxserver:latest
-```
-
-### With Docker Compose
-```yaml
-version: "3.9"
-services:
-  fxserver:
-    image: traskin/fxserver:latest
-    ports:
-      - 30120:30120/tcp
-      - 30120:30120/udp
-      - 40120:40120
-    tty: true
-```
+Under MIT License.
