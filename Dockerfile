@@ -1,10 +1,10 @@
-FROM alpine:3.14
+FROM alpine:edge
 
 ARG artifact=".+"
 
 RUN adduser -S cfx && \
     apk -U upgrade && \
-    apk -UvX http://dl-4.alpinelinux.org/alpine/edge/main add --no-cache curl jq xz wget alpine-conf libgcc libstdc++
+    apk -U add --no-cache curl jq xz wget alpine-conf libstdc++
 
 WORKDIR /home/cfx
 
