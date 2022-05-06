@@ -6,10 +6,10 @@ jobs:
   fivem-checker:
     runs-on: ubuntu-latest
     steps:
-      - run: sudo chown -R $USER:$USER ${{ github.workspace }}
       - uses: actions/checkout@v3
         with:
           repository: citizenfx/fivem
+          path: fivem
       - uses: actions-ecosystem/action-get-latest-tag@v1
         id: latest-tag
         with:
