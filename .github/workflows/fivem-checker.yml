@@ -24,6 +24,4 @@ jobs:
         if: ${{ steps.latest-tag.outputs.tag != null }}
         with:
           push: true
-          tags:
-          - traskin/fxserver:${{ steps.latest-tag.outputs.tag }}
-          - traskin/fxserver:latest
+          tags: traskin/fxserver:${{ steps.latest-tag.outputs.tag }},traskin/fxserver:latest
