@@ -7,9 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-          with:
-            repository: 'citizenfx/fivem'
-            ref: 'tag'
+        with:
+          repository: 'citizenfx/fivem'
+          ref: 'tag'
       - uses: actions-ecosystem/action-get-latest-tag@v1
         id: latest-tag
         with:
