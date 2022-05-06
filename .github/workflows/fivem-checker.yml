@@ -6,14 +6,10 @@ jobs:
   fivem-checker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-        with:
-          repository: citizenfx/fivem
-          path: fivem
-      - uses: actions-ecosystem/action-get-latest-tag@v1
+      - uses: tdemin/find-latest-tag@v1
         id: latest-tag
         with:
-          with_initial_version: false
+          repo: https://github.com/citizenfx/fivem.git
       - uses: actions/checkout@v3
       - uses: docker/login-action@v2
         if: ${{ steps.latest-tag.outputs.tag != null }}
