@@ -10,6 +10,7 @@ jobs:
         id: latest-tag
         with:
           repo: https://github.com/citizenfx/fivem.git
+          tag: 'v1.0.0.(\d+)'
       - uses: actions/checkout@v3
       - uses: docker/login-action@v2
         if: ${{ steps.latest-tag.outputs.tag != null }}
