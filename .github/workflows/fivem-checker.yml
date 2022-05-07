@@ -9,7 +9,7 @@ jobs:
     steps:
       - id: latest-tag
         run: |
-          echo ::set-output name=tag::$(curl -fH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\d+)").captures | .[].string})')
+          echo ::set-output name=tag::$(curl -fH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string})')
       - uses: actions/checkout@v3
       - uses: docker/login-action@v2
         if: ${{ steps.latest-tag.outputs.tag != null }}
