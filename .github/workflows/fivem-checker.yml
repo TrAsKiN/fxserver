@@ -13,8 +13,8 @@ jobs:
       - id: docker-image
         uses: javajawa/check-registry-for-image@v1
         with:
-          registry: traskin
-          repository: fxserver
+          registry: hub.docker.com
+          repository: traskin/fxserver
           tag: ${{ steps.latest-fivem-tag.outputs.tag }}
           auth: '{"Username": ${{ secrets.DOCKERHUB_USERNAME }}, "Secret": ${{ secrets.DOCKERHUB_SECRET }}}'
       - uses: actions/checkout@v3
