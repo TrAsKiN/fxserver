@@ -20,4 +20,8 @@ jobs:
         if: ${{ steps.latest-tag.outputs.tag != null }}
         with:
           push: true
-          tags: traskin/fxserver:${{ steps.latest-tag.outputs.tag }},traskin/fxserver:latest
+          build-args: |
+            artifact=${{ steps.latest-tag.outputs.tag }}
+          tags: |
+            traskin/fxserver:${{ steps.latest-tag.outputs.tag }}
+            traskin/fxserver:latest
