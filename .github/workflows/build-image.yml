@@ -25,7 +25,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - uses: docker/build-push-action@v3
-        if: ${{ steps.docker-image.outputs.exists == 'false' }}
+        if: ${{ steps.docker-image.outputs.exists == false }}
         with:
           push: true
           build-args: |
