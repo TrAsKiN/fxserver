@@ -1,5 +1,5 @@
 FROM alpine:latest AS base
-ARG artifact="\d+"
+ARG artifact="\\d+"
 RUN apk -U upgrade --no-cache && apk -U add --no-cache curl jq && \
     hash=$(curl -H "Accept: application/vnd.github.v3+json" \
         "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | \
