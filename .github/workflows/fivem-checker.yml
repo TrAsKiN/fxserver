@@ -7,11 +7,9 @@ jobs:
   fivem-checker:
     runs-on: ubuntu-latest
     steps:
-      - uses: tdemin/find-latest-tag@v1
-        id: latest-tag
-        with:
-          repo: https://github.com/citizenfx/fivem.git
-          tag: '\d{4}$'
+      - id: latest-tag
+        run: |
+          echo ::set-output name=tag::$(curl -fH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\d+)").captures | .[].string})')
       - uses: actions/checkout@v3
       - uses: docker/login-action@v2
         if: ${{ steps.latest-tag.outputs.tag != null }}
