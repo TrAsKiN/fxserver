@@ -16,6 +16,8 @@ jobs:
           repository: traskin/fxserver
           tag: ${{ steps.latest-fivem-tag.outputs.tag }}
           auth: '{"Username": ${{ secrets.DOCKERHUB_USERNAME }}, "Secret": ${{ secrets.DOCKERHUB_SECRET }}}'
+      - run: |
+          echo Docker image exists? ${{ steps.docker-image.outputs.exists }}
       - uses: actions/checkout@v3
       - uses: docker/login-action@v2
         if: ${{ steps.latest-fivem-tag.outputs.tag != null }}
