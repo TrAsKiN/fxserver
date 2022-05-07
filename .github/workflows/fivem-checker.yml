@@ -1,8 +1,7 @@
-name: FXServer version checker
-# on:
-#   schedule:
-#     - cron:  '*/30 * * * *'
-on: push
+name: Automatic building of docker image
+on:
+  schedule:
+    - cron:  '*/30 * * * *'
 jobs:
   fivem-checker:
     runs-on: ubuntu-latest
