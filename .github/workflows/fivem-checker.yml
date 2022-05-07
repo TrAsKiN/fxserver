@@ -10,11 +10,12 @@ jobs:
       - id: latest-fivem-tag
         run: |
           echo ::set-output name=tag::$(curl -fH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name')
-      - id: latest-docker-tag
-        uses: jacobtomlinson/gha-get-docker-hub-tags@0.1.1
+      - id: docker-image
+        uses: javajawa/check-registry-for-image@v1
         with:
-          org: traskin
-          repo: fxserver
+          registry: traskin
+          repository: fxserver
+          tag: ${{ steps.latest-fivem-tag.outputs.tag }}
       - uses: actions/checkout@v3
       - uses: docker/login-action@v2
         if: ${{ steps.latest-fivem-tag.outputs.tag != null }}
@@ -22,7 +23,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - uses: docker/build-push-action@v3
-        if: ${{ steps.latest-fivem-tag.outputs.tag > steps.latest-docker-tag.outputs.tag }}
+        if: ${{ steps.docker-image.outputs.exists == 'false' }}
         with:
           push: true
           build-args: |
