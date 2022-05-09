@@ -2,6 +2,7 @@ name: Automatic building of docker image
 on:
   schedule:
     - cron:  '*/15 * * * *'
+  push:
 jobs:
   fivem-checker:
     runs-on: ubuntu-latest
@@ -15,7 +16,8 @@ jobs:
           registry: hub.docker.com
           repository: traskin/fxserver
           tag: ${{ steps.latest-fivem-tag.outputs.tag }}
-          auth: '{"Username": ${{ secrets.DOCKERHUB_USERNAME }}, "Secret": ${{ secrets.DOCKERHUB_SECRET }}}'
+          auth: |
+            {"Username": ${{ secrets.DOCKERHUB_USERNAME }}, "Secret": ${{ secrets.DOCKERHUB_SECRET }}}
       - run: |
           echo Docker image exists? ${{ steps.docker-image.outputs.exists }}
       - uses: actions/checkout@v3
@@ -25,7 +27,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - uses: docker/build-push-action@v3
-        if: ${{ steps.docker-image.outputs.exists == false }}
+        if: ${{ steps.docker-image.outputs.exists == 'false' }}
         with:
           push: true
           build-args: |
