@@ -1,10 +1,10 @@
 name: Automatic building of docker image
 on:
   schedule:
-    - cron:  '*/15 * * * *'
+    - cron:  '*/20 * * * *'
   push:
 jobs:
-  fivem-checker:
+  auto-build:
     runs-on: ubuntu-latest
     steps:
       - id: latest-fivem-tag
