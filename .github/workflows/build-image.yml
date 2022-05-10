@@ -13,8 +13,6 @@ jobs:
       - id: docker-image
         run: |
           echo ::set-output name=exists::$(curl -s "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.latest-fivem-tag.outputs.tag }}/" | jq '.last_updated != null')
-      - run: |
-          echo Docker image exists? ${{ steps.docker-image.outputs.exists }}
       - uses: actions/checkout@v3
       - uses: docker/login-action@v2
         if: ${{ steps.latest-fivem-tag.outputs.tag != null }}
