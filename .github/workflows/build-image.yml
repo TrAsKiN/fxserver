@@ -1,7 +1,7 @@
 name: Automatic building of docker image
 on:
   schedule:
-    - cron:  '*/20 * * * *'
+    - cron: "*/20 * * * *"
   push:
 jobs:
   auto-build:
@@ -9,15 +9,15 @@ jobs:
     steps:
       - id: latest-fivem-tag
         run: |
-          echo ::set-output name=tag::$(curl -fH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name')
+          echo tag=$(curl -fH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name') >> $GITHUB_OUTPUT
       - id: docker-image
         if: ${{ steps.latest-fivem-tag.outputs.tag != null }}
         run: |
-          echo ::set-output name=exists::$(curl -s "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.latest-fivem-tag.outputs.tag }}/" | jq '.last_updated != null')
+          echo exists=$(curl -s "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.latest-fivem-tag.outputs.tag }}/" | jq '.last_updated != null') >> $GITHUB_OUTPUT
       - id: fxserver-artifact
         if: ${{ steps.docker-image.outputs.exists == 'false' }}
         run: |
-          echo ::set-output name=response::$(curl -s --head -w %{http_code} https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/$(curl -sH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(${{ steps.latest-fivem-tag.outputs.tag }})").captures | .[].string, hash: .commit.sha} | join("-"))')/fx.tar.xz -o /dev/null)
+          echo response=$(curl -s --head -w %{http_code} https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/$(curl -sH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(${{ steps.latest-fivem-tag.outputs.tag }})").captures | .[].string, hash: .commit.sha} | join("-"))')/fx.tar.xz -o /dev/null) >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
       - uses: docker/login-action@v2
