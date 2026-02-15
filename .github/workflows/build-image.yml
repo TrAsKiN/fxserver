@@ -56,9 +56,11 @@ jobs:
             tags="${tags}
           traskin/fxserver:latest"
           fi
-          echo "tags<<EOF" >> $GITHUB_OUTPUT
-          echo "$tags" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "tags<<EOF"
+            echo "$tags"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
       - uses: docker/build-push-action@v6
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
         with:
