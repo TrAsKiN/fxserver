@@ -16,7 +16,7 @@ jobs:
       - id: latest-fivem-tag
         if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
-          response=$(curl -sfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
+          response=$(curl -sSfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
             echo "Error: Failed to fetch tags from GitHub API." >&2
             exit 1
           }
@@ -44,7 +44,7 @@ jobs:
         if: ${{ steps.set-build-number.outputs.tag != '' && steps.set-build-number.outputs.tag != null }}
         run: |
           tmpfile=$(mktemp)
-          status=$(curl -s -o "$tmpfile" -w "%{http_code}" "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.set-build-number.outputs.tag }}/")
+          status=$(curl -sS -o "$tmpfile" -w "%{http_code}" "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.set-build-number.outputs.tag }}/")
           if [ "$status" -eq 200 ]; then
             exists=$(jq -er 'if .last_updated? == null then "false" else "true" end' "$tmpfile")
           elif [ "$status" -eq 404 ]; then
@@ -59,7 +59,7 @@ jobs:
       - id: fxserver-artifact
         if: ${{ steps.docker-image.outputs.exists == 'false' }}
         run: |
-          artifact_json=$(curl -sfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
+          artifact_json=$(curl -sSfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
             echo "Error: Failed to fetch tags from GitHub API." >&2
             exit 1
           }
@@ -72,7 +72,7 @@ jobs:
             exit 1
           fi
           artifact_url="https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/${artifact_suffix}/fx.tar.xz"
-          response=$(curl -s --head -w '%{http_code}' -o /dev/null "$artifact_url") || {
+          response=$(curl -sS --head -w '%{http_code}' -o /dev/null "$artifact_url") || {
             echo "Error: Failed to query artifact URL: $artifact_url" >&2
             exit 1
           }
@@ -83,7 +83,7 @@ jobs:
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            latest_build=$(curl -sH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name')
+            latest_build=$(curl -sSH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name')
           else
             latest_build="${{ steps.latest-fivem-tag.outputs.tag }}"
           fi
