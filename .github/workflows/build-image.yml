@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       build_number:
-        description: 'FiveM build number (e.g., 12345)'
+        description: 'FiveM build number - must be a positive integer (e.g., 12345). Check https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/ for available builds.'
         required: true
         type: number
 jobs:
@@ -22,12 +22,16 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "tag=${{ inputs.build_number }}" >> $GITHUB_OUTPUT
           else
+            if [ -z "${{ steps.latest-fivem-tag.outputs.tag }}" ]; then
+              echo "Error: latest FiveM tag is empty or unavailable; aborting build number setup." >&2
+              exit 1
+            fi
             echo "tag=${{ steps.latest-fivem-tag.outputs.tag }}" >> $GITHUB_OUTPUT
           fi
       - id: docker-image
-        if: ${{ steps.set-build-number.outputs.tag != null }}
+        if: ${{ steps.set-build-number.outputs.tag != '' && steps.set-build-number.outputs.tag != null }}
         run: |
-          echo exists=$(curl -s "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.set-build-number.outputs.tag }}/" | jq '.last_updated != null') >> $GITHUB_OUTPUT
+          echo exists=$(curl -sf "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.set-build-number.outputs.tag }}/" | jq -er 'if .last_updated? == null then "false" else "true" end') >> $GITHUB_OUTPUT
       - id: fxserver-artifact
         if: ${{ steps.docker-image.outputs.exists == 'false' }}
         run: |
@@ -37,8 +41,16 @@ jobs:
       - id: check-is-latest
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
         run: |
-          latest_build=$(curl -sH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name')
-          if [ "${{ steps.set-build-number.outputs.tag }}" = "$latest_build" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            latest_build=$(curl -sH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name')
+          else
+            latest_build="${{ steps.latest-fivem-tag.outputs.tag }}"
+          fi
+          
+          if [ -z "$latest_build" ]; then
+            echo "Error: Unable to determine latest build number; defaulting is_latest to false." >&2
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.set-build-number.outputs.tag }}" = "$latest_build" ]; then
             echo "is_latest=true" >> $GITHUB_OUTPUT
           else
             echo "is_latest=false" >> $GITHUB_OUTPUT
