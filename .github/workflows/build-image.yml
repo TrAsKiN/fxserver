@@ -19,7 +19,7 @@ jobs:
           echo tag=$(curl -fH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name') >> $GITHUB_OUTPUT
       - id: set-build-number
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "tag=${{ inputs.build_number }}" >> $GITHUB_OUTPUT
           else
             echo "tag=${{ steps.latest-fivem-tag.outputs.tag }}" >> $GITHUB_OUTPUT
@@ -38,7 +38,7 @@ jobs:
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
         run: |
           latest_build=$(curl -sH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name')
-          if [ "${{ steps.set-build-number.outputs.tag }}" == "$latest_build" ]; then
+          if [ "${{ steps.set-build-number.outputs.tag }}" = "$latest_build" ]; then
             echo "is_latest=true" >> $GITHUB_OUTPUT
           else
             echo "is_latest=false" >> $GITHUB_OUTPUT
@@ -52,8 +52,8 @@ jobs:
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
         run: |
           tags="traskin/fxserver:${{ steps.set-build-number.outputs.tag }}"
-          if [ "${{ steps.check-is-latest.outputs.is_latest }}" == "true" ]; then
-            tags="$tags
+          if [ "${{ steps.check-is-latest.outputs.is_latest }}" = "true" ]; then
+            tags="${tags}
           traskin/fxserver:latest"
           fi
           echo "tags<<EOF" >> $GITHUB_OUTPUT
