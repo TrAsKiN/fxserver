@@ -3,34 +3,129 @@ on:
   schedule:
     - cron: "*/20 * * * *"
   push:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'FiveM build number - must be a positive integer (e.g., 12345). Check https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/ for available builds.'
+        required: true
+        type: number
 jobs:
   auto-build:
     runs-on: ubuntu-latest
     steps:
       - id: latest-fivem-tag
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
-          echo tag=$(curl -fH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name') >> $GITHUB_OUTPUT
+          response=$(curl -sSfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
+            echo "Error: Failed to fetch tags from GitHub API." >&2
+            exit 1
+          }
+          tag=$(printf '%s\n' "$response" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name') || {
+            echo "Error: Failed to parse tag from GitHub API response." >&2
+            exit 1
+          }
+          if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+            echo "Error: No valid FiveM tag found in GitHub API response." >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+      - id: set-build-number
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.build_number }}" >> $GITHUB_OUTPUT
+          else
+            if [ -z "${{ steps.latest-fivem-tag.outputs.tag }}" ]; then
+              echo "Error: latest FiveM tag is empty or unavailable; aborting build number setup." >&2
+              exit 1
+            fi
+            echo "tag=${{ steps.latest-fivem-tag.outputs.tag }}" >> $GITHUB_OUTPUT
+          fi
       - id: docker-image
-        if: ${{ steps.latest-fivem-tag.outputs.tag != null }}
+        if: ${{ steps.set-build-number.outputs.tag != '' && steps.set-build-number.outputs.tag != null }}
         run: |
-          echo exists=$(curl -s "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.latest-fivem-tag.outputs.tag }}/" | jq '.last_updated != null') >> $GITHUB_OUTPUT
+          tmpfile=$(mktemp)
+          status=$(curl -sS -o "$tmpfile" -w "%{http_code}" "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.set-build-number.outputs.tag }}/")
+          if [ "$status" -eq 200 ]; then
+            exists=$(jq -er 'if .last_updated? == null then "false" else "true" end' "$tmpfile")
+          elif [ "$status" -eq 404 ]; then
+            exists="false"
+          else
+            echo "Error: Unexpected HTTP status $status when checking Docker tag traskin/fxserver:${{ steps.set-build-number.outputs.tag }}" >&2
+            rm -f "$tmpfile"
+            exit 1
+          fi
+          rm -f "$tmpfile"
+          echo "exists=$exists" >> $GITHUB_OUTPUT
       - id: fxserver-artifact
         if: ${{ steps.docker-image.outputs.exists == 'false' }}
         run: |
-          echo response=$(curl -s --head -w %{http_code} https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/$(curl -sH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(${{ steps.latest-fivem-tag.outputs.tag }})").captures | .[].string, hash: .commit.sha} | join("-"))')/fx.tar.xz -o /dev/null) >> $GITHUB_OUTPUT
+          artifact_json=$(curl -sSfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
+            echo "Error: Failed to fetch tags from GitHub API." >&2
+            exit 1
+          }
+          artifact_suffix=$(printf '%s\n' "$artifact_json" | jq -er 'first(.[] | {name: .name | match("v1.0.0.(${{ steps.set-build-number.outputs.tag }})").captures | .[].string, hash: .commit.sha} | join("-"))') || {
+            echo "Error: Failed to extract artifact suffix from GitHub tags response." >&2
+            exit 1
+          }
+          if [ -z "$artifact_suffix" ]; then
+            echo "Error: Artifact suffix is empty; cannot build artifact URL." >&2
+            exit 1
+          fi
+          artifact_url="https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/${artifact_suffix}/fx.tar.xz"
+          response=$(curl -sS --head -w '%{http_code}' -o /dev/null "$artifact_url") || {
+            echo "Error: Failed to query artifact URL: $artifact_url" >&2
+            exit 1
+          }
+          echo "response=$response" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v4
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
+      - id: check-is-latest
+        if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            response=$(curl -sSfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
+              echo "Error: Failed to fetch tags from GitHub API." >&2
+              echo "is_latest=false" >> $GITHUB_OUTPUT
+              exit 0
+            }
+            latest_build=$(printf '%s\n' "$response" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name') || {
+              echo "Error: Failed to parse tag from GitHub API response." >&2
+              echo "is_latest=false" >> $GITHUB_OUTPUT
+              exit 0
+            }
+          else
+            latest_build="${{ steps.latest-fivem-tag.outputs.tag }}"
+          fi
+          
+          if [ -z "$latest_build" ] || [ "$latest_build" = "null" ]; then
+            echo "Error: Unable to determine latest build number; defaulting is_latest to false." >&2
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.set-build-number.outputs.tag }}" = "$latest_build" ]; then
+            echo "is_latest=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+          fi
       - uses: docker/login-action@v3
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - id: set-docker-tags
+        if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
+        run: |
+          tags="traskin/fxserver:${{ steps.set-build-number.outputs.tag }}"
+          if [ "${{ steps.check-is-latest.outputs.is_latest }}" = "true" ]; then
+            tags="${tags}"$'\n'"traskin/fxserver:latest"
+          fi
+          {
+            echo "tags<<EOF"
+            echo "$tags"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
       - uses: docker/build-push-action@v6
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
         with:
           push: true
           build-args: |
-            artifact=${{ steps.latest-fivem-tag.outputs.tag }}
-          tags: |
-            traskin/fxserver:${{ steps.latest-fivem-tag.outputs.tag }}
-            traskin/fxserver:latest
+            artifact=${{ steps.set-build-number.outputs.tag }}
+          tags: ${{ steps.set-docker-tags.outputs.tags }}
