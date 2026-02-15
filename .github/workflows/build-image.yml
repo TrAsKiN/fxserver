@@ -16,7 +16,19 @@ jobs:
       - id: latest-fivem-tag
         if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
-          echo tag=$(curl -fH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name') >> $GITHUB_OUTPUT
+          response=$(curl -sfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
+            echo "Error: Failed to fetch tags from GitHub API." >&2
+            exit 1
+          }
+          tag=$(printf '%s\n' "$response" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(\\d+)").captures | .[].string}).name') || {
+            echo "Error: Failed to parse tag from GitHub API response." >&2
+            exit 1
+          }
+          if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+            echo "Error: No valid FiveM tag found in GitHub API response." >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> $GITHUB_OUTPUT
       - id: set-build-number
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -47,7 +59,24 @@ jobs:
       - id: fxserver-artifact
         if: ${{ steps.docker-image.outputs.exists == 'false' }}
         run: |
-          echo response=$(curl -s --head -w %{http_code} https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/$(curl -sH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100" | jq -r 'first(.[] | {name: .name | match("v1.0.0.(${{ steps.set-build-number.outputs.tag }})").captures | .[].string, hash: .commit.sha} | join("-"))')/fx.tar.xz -o /dev/null) >> $GITHUB_OUTPUT
+          artifact_json=$(curl -sfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
+            echo "Error: Failed to fetch tags from GitHub API." >&2
+            exit 1
+          }
+          artifact_suffix=$(printf '%s\n' "$artifact_json" | jq -er 'first(.[] | {name: .name | match("v1.0.0.(${{ steps.set-build-number.outputs.tag }})").captures | .[].string, hash: .commit.sha} | join("-"))') || {
+            echo "Error: Failed to extract artifact suffix from GitHub tags response." >&2
+            exit 1
+          }
+          if [ -z "$artifact_suffix" ]; then
+            echo "Error: Artifact suffix is empty; cannot build artifact URL." >&2
+            exit 1
+          fi
+          artifact_url="https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/${artifact_suffix}/fx.tar.xz"
+          response=$(curl -s --head -w '%{http_code}' -o /dev/null "$artifact_url") || {
+            echo "Error: Failed to query artifact URL: $artifact_url" >&2
+            exit 1
+          }
+          echo "response=$response" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v4
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
       - id: check-is-latest
