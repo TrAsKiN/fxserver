@@ -65,8 +65,7 @@ jobs:
         run: |
           tags="traskin/fxserver:${{ steps.set-build-number.outputs.tag }}"
           if [ "${{ steps.check-is-latest.outputs.is_latest }}" = "true" ]; then
-            tags="${tags}
-          traskin/fxserver:latest"
+            tags="${tags}"$'\n'"traskin/fxserver:latest"
           fi
           {
             echo "tags<<EOF"
