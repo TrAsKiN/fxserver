@@ -31,7 +31,16 @@ jobs:
       - id: docker-image
         if: ${{ steps.set-build-number.outputs.tag != '' && steps.set-build-number.outputs.tag != null }}
         run: |
-          echo exists=$(curl -sf "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.set-build-number.outputs.tag }}/" | jq -er 'if .last_updated? == null then "false" else "true" end') >> $GITHUB_OUTPUT
+          status=$(curl -s -o /tmp/docker_tag.json -w "%{http_code}" "https://hub.docker.com/v2/repositories/traskin/fxserver/tags/${{ steps.set-build-number.outputs.tag }}/")
+          if [ "$status" -eq 200 ]; then
+            exists=$(jq -er 'if .last_updated? == null then "false" else "true" end' /tmp/docker_tag.json)
+          elif [ "$status" -eq 404 ]; then
+            exists="false"
+          else
+            echo "Error: Unexpected HTTP status $status when checking Docker tag traskin/fxserver:${{ steps.set-build-number.outputs.tag }}" >&2
+            exit 1
+          fi
+          echo "exists=$exists" >> $GITHUB_OUTPUT
       - id: fxserver-artifact
         if: ${{ steps.docker-image.outputs.exists == 'false' }}
         run: |
