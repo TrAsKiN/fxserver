@@ -15,8 +15,10 @@ jobs:
     steps:
       - id: latest-fivem-tag
         if: ${{ github.event_name != 'workflow_dispatch' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          response=$(curl -sSfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
+          response=$(curl -sSfH "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer $GITHUB_TOKEN" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
             echo "Error: Failed to fetch tags from GitHub API." >&2
             exit 1
           }
@@ -58,8 +60,10 @@ jobs:
           echo "exists=$exists" >> $GITHUB_OUTPUT
       - id: fxserver-artifact
         if: ${{ steps.docker-image.outputs.exists == 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          artifact_json=$(curl -sSfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
+          artifact_json=$(curl -sSfH "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer $GITHUB_TOKEN" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
             echo "Error: Failed to fetch tags from GitHub API." >&2
             exit 1
           }
@@ -81,9 +85,11 @@ jobs:
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
       - id: check-is-latest
         if: ${{ steps.fxserver-artifact.outputs.response == '200' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            response=$(curl -sSfH "Accept: application/vnd.github.v3+json" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
+            response=$(curl -sSfH "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer $GITHUB_TOKEN" --url "https://api.github.com/repos/citizenfx/fivem/tags?per_page=100") || {
               echo "Error: Failed to fetch tags from GitHub API." >&2
               echo "is_latest=false" >> $GITHUB_OUTPUT
               exit 0
