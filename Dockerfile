@@ -8,6 +8,7 @@ RUN apk -U upgrade --no-cache && apk -U add --no-cache curl jq && \
 
 FROM scratch
 COPY --from=base /tmp/alpine/ /
+COPY --from=base /tmp/run.sh /run.sh
 EXPOSE 30120/tcp 30120/udp 40120
 WORKDIR /opt/cfx-server/
 ENTRYPOINT ["/opt/cfx-server/run.sh"]
